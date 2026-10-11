@@ -9,7 +9,34 @@
 @media(max-width:600px){.card{padding:20px}.question{font-size:20px}}
 </style>
 </head>
-<body>
+<
+<audio id="bgMusic" loop preload="none">
+  <source src="./tum-prem-ho.mp3" type="audio/mpeg">
+</audio>
+
+<button id="musicToggle" type="button">
+  🎵 Putar Musik
+</button>
+
+<script>
+  const bgMusic = document.getElementById("bgMusic");
+  const musicToggle = document.getElementById("musicToggle");
+
+  musicToggle.addEventListener("click", async () => {
+    if (bgMusic.paused) {
+      try {
+        await bgMusic.play();
+        musicToggle.textContent = "⏸️ Jeda Musik";
+      } catch (error) {
+        alert("Musik belum bisa diputar. Periksa file audio.");
+      }
+    } else {
+      bgMusic.pause();
+      musicToggle.textContent = "🎵 Putar Musik";
+    }
+  });
+</script>
+>
 <div class="wrap">
 <section id="start" class="card center">
 <div class="mandala">🪷 🦚 🪷</div><h1>Vivi's India Quiz</h1><h2>Radha Krishna Edition</h2>
