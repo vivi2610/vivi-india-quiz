@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vivi's India Quiz — Radha Krishna Edition</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#43263d;background:linear-gradient(135deg,#f8dfa4,#e8b2c5,#8da3ce);min-height:100vh}
+.wrap{max-width:900px;margin:30px auto;padding:15px}.card{background:#fffaf3ee;border-radius:26px;padding:30px;box-shadow:0 15px 45px #56354b44}.center{text-align:center}h1{font-family:Georgia,serif;color:#713d5d;font-size:clamp(32px,6vw,56px)}h2{font-family:Georgia,serif}.mandala{font-size:64px}input,textarea{width:100%;padding:15px;border:2px solid #ddc0ce;border-radius:14px;font-size:16px}textarea{min-height:130px}.btn{border:0;padding:14px 22px;border-radius:14px;background:#784669;color:#fff;font-weight:bold;font-size:16px;cursor:pointer}.btn:disabled{opacity:.45}.row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.top{display:flex;justify-content:space-between;align-items:center}.progress{height:9px;background:#eadce2;border-radius:9px;margin:15px 0}.progress div{height:100%;background:#9b597c;border-radius:9px}.question{font-size:23px;font-weight:bold;margin:20px 0}.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}.opt{background:white;border:2px solid #e3ccd7;border-radius:18px;padding:10px;cursor:pointer;font-weight:bold}.opt img{width:100%;aspect-ratio:1;border-radius:12px}.correct{border-color:#419766!important;background:#eaf8ef!important}.wrong{border-color:#c95762!important;background:#fff0f1!important}.feedback{text-align:center;min-height:28px;font-weight:bold;margin:12px}.hidden{display:none}.score{text-align:center;font-size:48px;font-weight:bold;color:#7b4565}.small{font-size:13px;color:#806777}.leader{width:100%;border-collapse:collapse}.leader td,.leader th{padding:10px;border-bottom:1px solid #ead9df;text-align:left}
+@media(max-width:600px){.card{padding:20px}.question{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section id="start" class="card center">
+<div class="mandala">🪷 🦚 🪷</div><h1>Vivi's India Quiz</h1><h2>Radha Krishna Edition</h2>
+<p>Seberapa kenal kamu dengan Vivi? ✨</p>
+<input id="name" maxlength="40" placeholder="Ketik nama kamu...">
+<br><br><button class="btn" id="begin">Mulai Quiz</button>
+<p class="small">Leaderboard tersimpan online dan dapat dilihat bersama peserta lain.</p>
+</section>
+
+<section id="quiz" class="card hidden">
+<div class="top"><b id="qn"></b><b id="score">Skor: 0</b></div><div class="progress"><div id="prog"></div></div>
+<div id="q" class="question"></div><div id="opts" class="opts"></div><textarea id="essay" class="hidden" placeholder="Tulis jawabanmu..."></textarea>
+<div id="fb" class="feedback"></div><div class="row"><button class="btn" id="next" disabled>Berikutnya ➜</button></div>
+</section>
+
+<section id="result" class="card">
+<div class="center"><div class="mandala">🏆</div><h1>Hasil Quiz</h1><p id="thanks"></p><div id="final" class="score"></div><p id="rank"></p>
+<p><b>Terima kasih telah turut menjawab quiz Vivi. Semoga kita dapat terus berteman baik ya 💙</b></p></div>
+<h2>🏅 Leaderboard Bersama</h2><table class="leader"><thead><tr><th>#</th><th>Nama</th><th>Skor</th></tr></thead><tbody id="leaders"><tr><td colspan="3">Memuat...</td></tr></tbody></table>
+<br><div class="row"><button class="btn" onclick="location.reload()">Main Lagi</button></div>
+</section>
+</div>
+
+<script>
+/* =========================================================
+   KONFIGURASI BACKEND
+   Setelah Google Apps Script dibuat, masukkan URL Web App di bawah.
+   ========================================================= */
+const API_URL="https://script.google.com/macros/s/AKfycbyjsX3ujNNetRyhGSVVK-RRcnV_mCDwzEoO0sCbrcE-y-acp7yRPvDruHhG_s_eHsTbqQ/exec";
+
+const questions=[
+["Apa warna kesukaan Vivi?",["Merah","Biru","Hijau","Abu-abu","Hitam"],3],
+["Apa makanan kesukaan Vivi?",["Mie ayam","Bakso","Seblak","Nasi goreng","Mie rebus"],0],
+["Siapa aktris K-Drama kesukaan Vivi?",["IU","Kim Hye Yoon","Lee Hyeri","Song Hye Kyo","Jun Ji Hyun"],1],
+["Apa K-Drama kesukaan Vivi?",["Queen of Tears","My Royal Nemesis","Lovely Runner","Dynamite Kiss","Princess Hours"],2],
+["Apa serial India kesukaan Vivi?",["Guddan","Jhanak","Naagin","Radha Krishna","Uttaran"],3],
+["Kegiatan apa yang paling disukai Vivi?",["Belanja","Jajan","Menonton Film","Rebahan","Menghias kamar"],2],
+["Cuaca yang paling mendeskripsikan Vivi?",null,null],
+["Kebiasaan buruk apa yang dimiliki Vivi?",null,null],
+["Harapan apa yang hendak kamu sampaikan kepada Vivi?",null,null],
+["Apa saran terbaik agar Vivi dapat berkembang dan meningkatkan value diri?",null,null]
+];
+const icons=["❤️","💙","💚","🩶","🖤","🍜","🍲","🌶️","🍳","🥣","🌙","🎬","🛍️","🍢","🛏️","🪷","🦚","👑","🌸","✨"];
+let idx=0,score=0,person="",answered=false;
+
+function img(text,icon){let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" rx="25" fill="#f1d6c8"/><circle cx="200" cy="120" r="70" fill="#fff6df"/><text x="200" y="145" text-anchor="middle" font-size="70">${icon}</text><text x="200" y="245" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#54334b">${text}</text></svg>`;return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
+function beep(ok=true){try{const A=new AudioContext(),o=A.createOscillator(),g=A.createGain();o.connect(g);g.connect(A.destination);let t=A.currentTime;o.frequency.setValueAtTime(ok?600:220,t);o.frequency.exponentialRampToValueAtTime(ok?900:120,t+.2);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.1,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.start(t);o.stop(t+.32)}catch(e){}}
+function render(){let [q,opts,correct]=questions[idx];$("qn").textContent=`Pertanyaan ${idx+1} dari 10`;$("prog").style.width=((idx+1)*10)+"%";$("q").textContent=q;$("fb").textContent="";$("next").disabled=true;answered=false;$("opts").innerHTML="";$("essay").classList.toggle("hidden",!!opts);
+if(opts){opts.forEach((x,j)=>{let b=document.createElement("button");b.className="opt";b.innerHTML=`<img src="${img(x,icons[(idx*5+j)%icons.length])}"><div>${x}</div>`;b.onclick=()=>pick(j,b);$("opts").appendChild(b)});$("opts").classList.remove("hidden")}else{$("opts").classList.add("hidden");$("essay").value="";$("essay").oninput=()=>{$("next").disabled=!$("essay").value.trim()}}}
+function pick(j,b){if(answered)return;answered=true;let correct=questions[idx][2],bs=[...document.querySelectorAll(".opt")];bs.forEach(x=>x.disabled=true);if(j===correct){score+=10;b.classList.add("correct");$("fb").textContent="🎉 Benar!";beep(true)}else{b.classList.add("wrong");bs[correct].classList.add("correct");$("fb").textContent="😆 Belum tepat!";beep(false)}$("score").textContent=`Skor: ${score}`;$("next").disabled=false}
+$("begin").onclick=()=>{person=$("name").value.trim();if(!person)return alert("Silakan ketik nama terlebih dahulu.");$("start").classList.add("hidden");$("result").classList.add("hidden");$("quiz").classList.remove("hidden");render()};
+$("next").onclick=()=>{idx++;if(idx<10)render();else finish()};
+async function finish(){
+$("quiz").classList.add("hidden");$("result").classList.remove("hidden");$("thanks").textContent=`Terima kasih, ${person}!`;$("final").textContent=`${score} / 60 poin`;
+if(!API_URL.startsWith("http")){loadDemo();return}
+try{await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({name:person,score:score})});await new Promise(r=>setTimeout(r,700));loadBoard()}catch(e){loadDemo()}
+}
+function loadDemo(){$("leaders").innerHTML=`<tr><td colspan="3">Backend belum dikonfigurasi. Masukkan URL Google Apps Script pada API_URL.</td></tr>`;$("rank").textContent="Leaderboard online belum aktif."}
+async function loadBoard(){try{let r=await fetch(API_URL);let data=await r.json();data.sort((a,b)=>b.score-a.score||a.timestamp-b.timestamp);let me=data.findIndex(x=>x.name===person&&Number(x.score)===score);$("rank").textContent=`Peringkat kamu: #${me+1}`;$("leaders").innerHTML=data.slice(0,50).map((x,i)=>`<tr><td>${i+1}</td><td>${safe(x.name)}</td><td>${x.score}</td></tr>`).join("")}catch(e){loadDemo()}}
+function safe(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+$("result").classList.add("hidden");
+</script>
+</body></html>
