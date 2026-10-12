@@ -83,19 +83,86 @@ const questions=[
 ];
 const icons=["❤️","💙","💚","🩶","🖤","🍜","🍲","🌶️","🍳","🥣","🌙","🎬","🛍️","🍢","🛏️","🪷","🦚","👑","🌸","✨"];
 let idx=0,score=0,person="",answered=false;
+let answers = Array(10).fill("");
 
 function img(text,icon){let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" rx="25" fill="#f1d6c8"/><circle cx="200" cy="120" r="70" fill="#fff6df"/><text x="200" y="145" text-anchor="middle" font-size="70">${icon}</text><text x="200" y="245" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#54334b">${text}</text></svg>`;return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s)}
 function beep(ok=true){try{const A=new AudioContext(),o=A.createOscillator(),g=A.createGain();o.connect(g);g.connect(A.destination);let t=A.currentTime;o.frequency.setValueAtTime(ok?600:220,t);o.frequency.exponentialRampToValueAtTime(ok?900:120,t+.2);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.1,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.start(t);o.stop(t+.32)}catch(e){}}
-function render(){let [q,opts,correct]=questions[idx];$("qn").textContent=`Pertanyaan ${idx+1} dari 10`;$("prog").style.width=((idx+1)*10)+"%";$("q").textContent=q;$("fb").textContent="";$("next").disabled=true;answered=false;$("opts").innerHTML="";$("essay").classList.toggle("hidden",!!opts);
-if(opts){opts.forEach((x,j)=>{let b=document.createElement("button");b.className="opt";b.innerHTML=`<img src="${img(x,icons[(idx*5+j)%icons.length])}"><div>${x}</div>`;b.onclick=()=>pick(j,b);$("opts").appendChild(b)});$("opts").classList.remove("hidden")}else{$("opts").classList.add("hidden");$("essay").value="";$("essay").oninput=()=>{$("next").disabled=!$("essay").value.trim()}}}
-function pick(j,b){if(answered)return;answered=true;let correct=questions[idx][2],bs=[...document.querySelectorAll(".opt")];bs.forEach(x=>x.disabled=true);if(j===correct){score+=10;b.classList.add("correct");$("fb").textContent="🎉 Benar!";beep(true)}else{b.classList.add("wrong");bs[correct].classList.add("correct");$("fb").textContent="😆 Belum tepat!";beep(false)}$("score").textContent=`Skor: ${score}`;$("next").disabled=false}
-$("begin").onclick=()=>{person=$("name").value.trim();if(!person)return alert("Silakan ketik nama terlebih dahulu.");$("start").classList.add("hidden");$("result").classList.add("hidden");$("quiz").classList.remove("hidden");render()};
-$("next").onclick=()=>{idx++;if(idx<10)render();else finish()};
-async function finish(){
-$("quiz").classList.add("hidden");$("result").classList.remove("hidden");$("thanks").textContent=`Terima kasih, ${person}!`;$("final").textContent=`${score} / 60 poin`;
-if(!API_URL.startsWith("http")){loadDemo();return}
-try{await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({name:person,score:score})});await new Promise(r=>setTimeout(r,700));loadBoard()}catch(e){loadDemo()}
+
+function render(){
+  let [q,opts,correct]=questions[idx];
+
+  $("qn").textContent=`Pertanyaan ${idx+1} dari 10`;
+  $("prog").style.width=((idx+1)*10)+"%";
+  $("q").textContent=q;
+  $("fb").textContent="";
+  $("next").disabled=true;
+  answered=false;
+  $("opts").innerHTML="";
+  $("essay").classList.toggle("hidden",!!opts);
+
+  if(opts){
+    opts.forEach((x,j)=>{
+      let b=document.createElement("button");
+      b.className="opt";
+      b.innerHTML=`<img src="${img(x,icons[(idx*5+j)%icons.length])}"><div>${x}</div>`;
+      b.onclick=()=>pick(j,b);
+      $("opts").appendChild(b);
+    });
+    $("opts").classList.remove("hidden");
+  }else{
+    $("opts").classList.add("hidden");
+    $("essay").value="";
+    $("essay").oninput=()=>{
+      answers[idx]=$("essay").value.trim();
+      $("next").disabled=!answers[idx];
+    };
+  }
 }
+
+function pick(j,b){if(answered)return;answered=true;answers[idx] = questions[idx][1][j];let correct=questions[idx][2],bs=[...document.querySelectorAll(".opt")];bs.forEach(x=>x.disabled=true);if(j===correct){score+=10;b.classList.add("correct");$("fb").textContent="🎉 Benar!";beep(true)}else{b.classList.add("wrong");bs[correct].classList.add("correct");$("fb").textContent="😆 Belum tepat!";beep(false)}$("score").textContent=`Skor: ${score}`;$("next").disabled=false}
+$("begin").onclick=()=>{person=$("name").value.trim();if(!person)return alert("Silakan ketik nama terlebih dahulu.");$("start").classList.add("hidden");$("result").classList.add("hidden");$("quiz").classList.remove("hidden");render()};
+$("next").onclick=()=>{
+  if(!questions[idx][1]){
+    answers[idx] = $("essay").value.trim();
+  }
+  idx++;
+  if(idx<10)render();
+  else finish();
+};
+
+async function finish(){
+  $("quiz").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  $("thanks").textContent = `Terima kasih, ${person}!`;
+  $("final").textContent = `${score} / 60 poin`;
+
+  const payload = {
+    name: person,
+    score: score,
+    answers: answers,
+    timestamp: new Date().toISOString()
+  };
+
+  $("leaders").innerHTML =
+    '<tr><td colspan="3">Mengirim jawaban...</td></tr>';
+
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    setTimeout(loadBoard, 1500);
+  } catch(error) {
+    $("leaders").innerHTML =
+      '<tr><td colspan="3">Pengiriman gagal. Periksa koneksi.</td></tr>';
+  }
+}
+
 function loadDemo(){$("leaders").innerHTML=`<tr><td colspan="3">Backend belum dikonfigurasi. Masukkan URL Google Apps Script pada API_URL.</td></tr>`;$("rank").textContent="Leaderboard online belum aktif."}
 async function loadBoard(){try{let r=await fetch(API_URL);let data=await r.json();data.sort((a,b)=>b.score-a.score||a.timestamp-b.timestamp);let me=data.findIndex(x=>x.name===person&&Number(x.score)===score);$("rank").textContent=`Peringkat kamu: #${me+1}`;$("leaders").innerHTML=data.slice(0,50).map((x,i)=>`<tr><td>${i+1}</td><td>${safe(x.name)}</td><td>${x.score}</td></tr>`).join("")}catch(e){loadDemo()}}
 function safe(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
